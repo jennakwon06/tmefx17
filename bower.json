@@ -1,8 +1,8 @@
 {
-  "name": "flask-stock-visualizer",
+  "name": "tmequifaxproject",
   "version": "0.0.0",
   "authors": [
-    "Michael Herman <michael@realpython.com>"
+    "Jenna Kwon @ jennakwon06@gmail.com"
   ],
   "main": "app.py",
   "license": "MIT",
