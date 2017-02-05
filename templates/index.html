@@ -6,9 +6,6 @@
         fill: white
     }
 
-    .tract:hover {
-        fill: orange;
-    }
 
     /*.tract-border {*/
         /*fill: black;*/
@@ -21,10 +18,14 @@
 
     path {
         fill: none;
-        stroke: #000;
+        stroke: white;
         stroke-width: .5px;
         stroke-linejoin: round;
         stroke-linecap: round;
+    }
+
+    path.tract_fulton {
+        stroke: black;
     }
 
 </style>
@@ -33,6 +34,7 @@
 <script src="//d3js.org/topojson.v1.min.js"></script>
 <script>
     var g_tracts;
+    var g_csvfile;
 
     var width = 600,
         height = 700,
@@ -54,38 +56,57 @@
     var g = svg.append("g")
         .style("stroke-width", "1.5px");
 
-    d3.json("../static/GA_map/ca-simple-topo.json", function(error, ny) {
-        if (error) throw error;
+    d3.csv("../static/tract_scores.csv", function(csvfile) {
+//        color.domain([0, 1, 2, 3]); // setting the range of the input data
 
-        var tracts = ny.objects.tracts;
-        g_tracts = tracts
+        d3.json("../static/GA_map/ca-simple-topo.json", function (error, ga) {
+            if (error) throw error;
 
-        g.selectAll("path")
-            .data(topojson.feature(ny, tracts).features)
-            .enter().append("path")
-            .attr("class", "tract")
-            .attr("d", path)
-//            .on("click", clicked)
-            .style("fill", function(d){
-                if (d.properties.COUNTYFP == "121") {
-                    console.log(d.properties)
-                    return "yellow"
+            var tracts = ga.objects.tracts;
+            var tractData = topojson.feature(ga, tracts).features;
+            g_tracts = tractData;
+            g_csvfile = csvfile;
+
+            // @TODO: premature optimization, but maybe turn csvfile from list of dicts to one dict for fast lookup
+            //            and one less loop.
+            for (var i = 0; i < tractData.length; i++) {
+                if (tractData[i].properties.COUNTYFP == "121") {
+//                    var geoId = tractData[i].properties.GEOID;
+
+                    for (var j = 0; j < csvfile.length; j++) {
+                        if (csvfile[j].tract_id == tractData[i].properties.GEOID) {
+                            for (var z = 1; z < 32; z++) {
+                                tractData[i].properties['Q' + z.toString()] = csvfile[j]['Q' + z.toString()]
+
+                            }
+                        }
+                    }
                 }
-            })
-            .append("title")
-            .text(function(d, i) { return d.id; });
+            }
 
+            g.selectAll("path")
+                .data(g_tracts)
+                .enter()
+                .append("path")
+                .attr("class", "tract")
+                .attr("d", path)
+                .filter(function (d) {
+                    return d.properties.COUNTYFP == "121"
+                })
+                .style("fill", "yellow")
+                .attr("class", "tract_fulton");
 
-        g.append("path")
-            .attr("class", "tract-border")
-            .datum(topojson.mesh(ny))
-            .attr("d", path);
+            g.append("path")
+                .attr("class", "tract-border")
+                .datum(topojson.mesh(ga))
+                .attr("d", path);
 
-        g.transition()
-            .style("stroke-width", 1.5 / 4 + "px")
-            .attr("transform", "translate(" + "-700, -700" + ")scale(4)");
+            g.transition()
+                .style("stroke-width", 1.5 / 4 + "px")
+                .attr("transform", "translate(" + "-700, -700" + ")scale(4)");
 
-        console.log(g)
+            console.log(g)
+        });
     });
 
 
