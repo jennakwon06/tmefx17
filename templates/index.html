@@ -6,6 +6,9 @@
         fill: white
     }
 
+    .tract_fulton:hover {
+        fill: purple
+    }
 
     /*.tract-border {*/
         /*fill: black;*/
@@ -50,11 +53,16 @@
 
     svg.append("rect")
         .attr("class", "background")
+        .style("fill", "white")
         .attr("width", width)
         .attr("height", height);
 
     var g = svg.append("g")
         .style("stroke-width", "1.5px");
+
+    var color = d3.scale.linear()
+        .range(["rgb(213,222,217)","rgb(69,173,168)","rgb(84,36,55)","rgb(217,91,67)"]);
+
 
     d3.csv("../static/tract_scores.csv", function(csvfile) {
 //        color.domain([0, 1, 2, 3]); // setting the range of the input data
@@ -64,25 +72,28 @@
 
             var tracts = ga.objects.tracts;
             var tractData = topojson.feature(ga, tracts).features;
-            g_tracts = tractData;
+
             g_csvfile = csvfile;
+            var filteredTractData = [];
 
             // @TODO: premature optimization, but maybe turn csvfile from list of dicts to one dict for fast lookup
             //            and one less loop.
             for (var i = 0; i < tractData.length; i++) {
                 if (tractData[i].properties.COUNTYFP == "121") {
+                    filteredTractData.push(tractData[i]);
 //                    var geoId = tractData[i].properties.GEOID;
 
                     for (var j = 0; j < csvfile.length; j++) {
                         if (csvfile[j].tract_id == tractData[i].properties.GEOID) {
                             for (var z = 1; z < 32; z++) {
                                 tractData[i].properties['Q' + z.toString()] = csvfile[j]['Q' + z.toString()]
-
                             }
                         }
                     }
                 }
             }
+
+            g_tracts = filteredTractData;
 
             g.selectAll("path")
                 .data(g_tracts)
@@ -90,9 +101,9 @@
                 .append("path")
                 .attr("class", "tract")
                 .attr("d", path)
-                .filter(function (d) {
-                    return d.properties.COUNTYFP == "121"
-                })
+//                .filter(function (d) {
+//                    return d.properties.COUNTYFP == "121"
+//                })
                 .style("fill", "yellow")
                 .attr("class", "tract_fulton");
 
