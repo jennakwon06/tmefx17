@@ -1,129 +1,137 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<style>
+<head>
+    <script src="//d3js.org/d3.v3.min.js"></script>
+    <script src="//d3js.org/topojson.v1.min.js"></script>
+    <script src="../static/d3.slider.js"></script>
+    <link rel= "stylesheet" type= "text/css" href= "../static/d3.slider.css">
+    <style>
 
-    .tract {
-        fill: white
-    }
+        .tract {
+            fill: white
+        }
 
-    .tract_fulton:hover {
-        fill: purple
-    }
+        .tract_fulton:hover {
+            fill: purple
+        }
 
-    /*.tract-border {*/
+        /*.tract-border {*/
         /*fill: black;*/
         /*stroke: #fff;*/
         /*stroke-width: 1px;*/
         /*stroke-linejoin: round;*/
         /*stroke-linecap: round;*/
         /*pointer-events: none;*/
-    /*}*/
+        /*}*/
 
-    path {
-        fill: none;
-        stroke: white;
-        stroke-width: .5px;
-        stroke-linejoin: round;
-        stroke-linecap: round;
-    }
+        path {
+            fill: none;
+            stroke: white;
+            stroke-width: .5px;
+            stroke-linejoin: round;
+            stroke-linecap: round;
+        }
 
-    path.tract_fulton {
-        stroke: black;
-    }
+        path.tract_fulton {
+            stroke: black;
+        }
 
-</style>
+    </style>
+</head>
 <body>
-<script src="//d3js.org/d3.v3.min.js"></script>
-<script src="//d3js.org/topojson.v1.min.js"></script>
-<script>
-    var g_tracts;
-    var g_csvfile;
+    <div id="slider"></div>
 
-    var width = 600,
-        height = 700,
-        active = d3.select(null);
+    <script>
+        var g_tracts;
+        var g_csvfile;
 
+        var width = 600,
+            height = 700;
 
-    var path = d3.geo.path()
-        .projection(null);
+        var path = d3.geo.path()
+            .projection(null);
 
-    var svg = d3.select("body").append("svg")
-        .attr("width", width)
-        .attr("height", height);
+        var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height);
 
-    svg.append("rect")
-        .attr("class", "background")
-        .style("fill", "white")
-        .attr("width", width)
-        .attr("height", height);
+        svg.append("rect")
+            .attr("class", "background")
+            .style("fill", "white")
+            .attr("width", width)
+            .attr("height", height);
 
-    var g = svg.append("g")
-        .style("stroke-width", "1.5px");
+        var g = svg.append("g")
+            .style("stroke-width", "1.5px");
 
-    var color = d3.scale.linear()
-        .range(["rgb(213,222,217)","rgb(69,173,168)","rgb(84,36,55)","rgb(217,91,67)"]);
+        var color = d3.scale.linear()
+            .range(["rgb(213,222,217)","rgb(69,173,168)","rgb(84,36,55)","rgb(217,91,67)"]);
 
-    color.domain([0, 10]);
+        color.domain([0, 10]);
 
-    d3.csv("../static/tract_scores.csv", function(csvfile) {
-//        color.domain([0, 1, 2, 3]); // setting the range of the input data
+        d3.csv("../static/tract_scores.csv", function(csvfile) {
+            d3.json("../static/GA_map/ca-simple-topo.json", function (error, ga) {
+                if (error) throw error;
 
-        d3.json("../static/GA_map/ca-simple-topo.json", function (error, ga) {
-            if (error) throw error;
+                var tracts = ga.objects.tracts;
+                var tractData = topojson.feature(ga, tracts).features;
+                var filteredTractData = [];
 
-            var tracts = ga.objects.tracts;
-            var tractData = topojson.feature(ga, tracts).features;
+                // @TODO: premature optimization, but maybe turn csvfile from list of dicts to one dict for fast lookup
+                //            and one less loop.
+                for (var i = 0; i < tractData.length; i++) {
+                    if (tractData[i].properties.COUNTYFP == "121") {
+                        filteredTractData.push(tractData[i]);
+    //                    var geoId = tractData[i].properties.GEOID;
 
-            g_csvfile = csvfile;
-            var filteredTractData = [];
-
-            // @TODO: premature optimization, but maybe turn csvfile from list of dicts to one dict for fast lookup
-            //            and one less loop.
-            for (var i = 0; i < tractData.length; i++) {
-                if (tractData[i].properties.COUNTYFP == "121") {
-                    filteredTractData.push(tractData[i]);
-//                    var geoId = tractData[i].properties.GEOID;
-
-                    for (var j = 0; j < csvfile.length; j++) {
-                        if (csvfile[j].tract_id == tractData[i].properties.GEOID) {
-                            for (var z = 1; z < 32; z++) {
-                                tractData[i].properties['Q' + z.toString()] = csvfile[j]['Q' + z.toString()]
+                        for (var j = 0; j < csvfile.length; j++) {
+                            if (csvfile[j].tract_id == tractData[i].properties.GEOID) {
+                                for (var z = 1; z < 32; z++) {
+                                    tractData[i].properties['Q' + z.toString()] = csvfile[j]['Q' + z.toString()]
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            g_tracts = filteredTractData;
+                g_csvfile = csvfile;
+                g_tracts = filteredTractData;
 
+                g_tracts.forEach(function(d) {
+                   d['color'] = d.properties['Q1'];
+                   console.log(d)
+                });
+
+                recolorTracts();
+
+                g.append("path")
+                    .attr("class", "tract-border")
+                    .datum(topojson.mesh(ga))
+                    .attr("d", path);
+
+                g.transition()
+                    .style("stroke-width", 1.5 / 4 + "px")
+                    .attr("transform", "translate(" + "-700, -700" + ")scale(4)");
+            });
+        });
+
+        d3.select(self.frameElement).style("height", height + "px");
+
+        function recolorTracts() {
             g.selectAll("path")
                 .data(g_tracts)
                 .enter()
                 .append("path")
                 .attr("class", "tract")
                 .attr("d", path)
-//                .filter(function (d) {
-//                    return d.properties.COUNTYFP == "121"
-//                })
                 .style("fill", function(d){
-                    return color(d.properties['Q1']);
+                    return color(d['color']);
                 })
                 .attr("class", "tract_fulton");
+        }
 
-            g.append("path")
-                .attr("class", "tract-border")
-                .datum(topojson.mesh(ga))
-                .attr("d", path);
-
-            g.transition()
-                .style("stroke-width", 1.5 / 4 + "px")
-                .attr("transform", "translate(" + "-700, -700" + ")scale(4)");
-
-            console.log(g)
-        });
-    });
+        d3.select('#slider').call(d3.slider().axis(true).min(1).max(32).step(1));
 
 
-    d3.select(self.frameElement).style("height", height + "px");
-
-</script>
+    </script>
+</body>
