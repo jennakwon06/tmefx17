@@ -34,7 +34,7 @@
 <script>
     var g_tracts;
 
-    var width = 960,
+    var width = 600,
         height = 700,
         active = d3.select(null);
 
@@ -49,8 +49,7 @@
     svg.append("rect")
         .attr("class", "background")
         .attr("width", width)
-        .attr("height", height)
-        .on("click", reset);
+        .attr("height", height);
 
     var g = svg.append("g")
         .style("stroke-width", "1.5px");
@@ -83,24 +82,11 @@
             .attr("d", path);
 
         g.transition()
-            .duration(50)
             .style("stroke-width", 1.5 / 4 + "px")
-            .attr("transform", "translate(" + "-500, -700" + ")scale(4)");
+            .attr("transform", "translate(" + "-700, -700" + ")scale(4)");
 
         console.log(g)
     });
-
-
-
-    function reset() {
-        active.classed("active", false);
-        active = d3.select(null);
-
-        g.transition()
-            .duration(750)
-            .style("stroke-width", "1.5px")
-            .attr("transform", "");
-    }
 
 
     d3.select(self.frameElement).style("height", height + "px");
