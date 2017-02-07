@@ -36,6 +36,20 @@
             stroke: black;
         }
 
+        div.tooltip {
+            position: absolute;
+            text-align: center;
+            width: 60px;
+            height: 28px;
+            padding: 2px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+
     </style>
 </head>
 <body>
@@ -62,11 +76,30 @@
             .attr("width", w)
             .attr("height", h);
 
+        var tooltipDiv = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+
+
         //Load in GeoJSON data
-        d3.json("../static/Zillow/ca.json", function(json) {
+        d3.json("../static/Zillow/ca.json", function(data) {
+
+            // prefilter augusta
+            var atlanta = []
+            for (var i = 0; i < data.features.length; i++) {
+                var region = data.features[i];
+                if (region.properties.CITY == "Atlanta") {
+                    atlanta.push(region)
+                }
+            }
+
+            data.features = atlanta;
+
+            console.log(data);
+
 
             // Calculate bounding box transforms for entire collection
-            var b = path.bounds( json ),
+            var b = path.bounds( data ),
                 s = .95 / Math.max((b[1][0] - b[0][0]) / w, (b[1][1] - b[0][1]) / h),
                 t = [(w - s * (b[1][0] + b[0][0])) / 2, (h - s * (b[1][1] + b[0][1])) / 2];
 
@@ -75,18 +108,66 @@
                 .scale(s)
                 .translate(t);
 
-
             //Bind data and create one path per GeoJSON feature
             svg.selectAll("path")
-                .data(json.features)
+                .data(data.features)
                 .enter()
                 .append("path")
                 .attr("d", path)
                 .style("fill", function(d){
+                    return "steelblue"
+                })
+                .on("mouseover", function(d) {
                     console.log(d);
-                });
+                    tooltipDiv.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    tooltipDiv.html(d.properties.NAME)
+                        .style("left", (d3.event.pageX) + "px")
+                        .style("top", (d3.event.pageY - 28) + "px");
+                })
+                .on("mouseout", function(d) {
+                    tooltipDiv.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                });;
+
+
 
         });
+
+        function recolorTracts() {
+            console.log("inside recolor track");
+
+            g.selectAll("path")
+                .style("fill", function(d){
+                    return color(d['color']);
+                })
+        }
+
+        var detectChangeInSlider = function(s) {
+            g_tracts.forEach(function(d) {
+                d['color'] = d.properties['Q' + s.value().toString()];
+            });
+
+            recolorTracts();
+        };
+
+        var slider = d3.slider()
+            .min(1)
+            .max(32)
+            .ticks(32)
+            .showRange(true)
+            .tickFormat(function(d) {
+                return d + " Q";
+            })
+            .stepValues([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32])
+            .value(1)
+            .callback(detectChangeInSlider);
+
+        // Render the slider in the div
+        d3.select('#slider').call(slider);
+
 
     </script>
 
