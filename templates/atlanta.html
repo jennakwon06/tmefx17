@@ -137,7 +137,7 @@
                     .append("path")
                     .attr("d", path)
                     .style("fill", function(d){
-                        return d.properties['color'];
+                        return +d.properties['color'];
                     })
                     .on("mouseover", function(d) {
                         console.log(d);
