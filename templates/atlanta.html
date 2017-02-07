@@ -81,72 +81,94 @@
             .style("opacity", 0);
 
 
-        //Load in GeoJSON data
-        d3.json("../static/Zillow/ca.json", function(data) {
+        var color = d3.scale.linear()
+            .range(["rgb(213,222,217)","rgb(69,173,168)","rgb(84,36,55)","rgb(217,91,67)"]);
 
-            // prefilter augusta
-            var atlanta = []
-            for (var i = 0; i < data.features.length; i++) {
-                var region = data.features[i];
-                if (region.properties.CITY == "Atlanta") {
-                    atlanta.push(region)
+        color.domain([0,100]);
+
+        var g_data;
+
+        d3.csv("../static/atlanta_scores.csv", function(csvfile) {
+            d3.json("../static/Zillow/ca.json", function (error, data) {
+
+                if (error) throw error;
+                console.lo
+
+                // prefilter augusta
+                var atlanta = [];
+
+                for (var i = 0; i < data.features.length; i++) {
+                    var region = data.features[i];
+                    if (region.properties.CITY == "Atlanta") {
+
+                        for (var j = 0; j < csvfile.length; j++) {
+                            if (csvfile[j].region_id  == region.properties.REGIONID) {
+                                for (var z = 1; z < 32; z++) {
+                                    region.properties['Q' + z.toString()] = csvfile[j]['Q' + z.toString()]
+                                }
+                            }
+                        }
+                        region.properties['color'] = region.properties['Q1'];
+                        atlanta.push(region);
+                    }
                 }
-            }
 
-            data.features = atlanta;
+                data.features = atlanta;
 
-            console.log(data);
+                g_data = data;
 
+                console.log("After filtering and attaching data");
+                console.log(g_data);
 
-            // Calculate bounding box transforms for entire collection
-            var b = path.bounds( data ),
-                s = .95 / Math.max((b[1][0] - b[0][0]) / w, (b[1][1] - b[0][1]) / h),
-                t = [(w - s * (b[1][0] + b[0][0])) / 2, (h - s * (b[1][1] + b[0][1])) / 2];
+                // Calculate bounding box transforms for entire collection
+                var b = path.bounds( data ),
+                    s = .95 / Math.max((b[1][0] - b[0][0]) / w, (b[1][1] - b[0][1]) / h),
+                    t = [(w - s * (b[1][0] + b[0][0])) / 2, (h - s * (b[1][1] + b[0][1])) / 2];
 
-            // Update the projection
-            projection
-                .scale(s)
-                .translate(t);
+                // Update the projection
+                projection
+                    .scale(s)
+                    .translate(t);
 
-            //Bind data and create one path per GeoJSON feature
-            svg.selectAll("path")
-                .data(data.features)
-                .enter()
-                .append("path")
-                .attr("d", path)
-                .style("fill", function(d){
-                    return "steelblue"
-                })
-                .on("mouseover", function(d) {
-                    console.log(d);
-                    tooltipDiv.transition()
-                        .duration(200)
-                        .style("opacity", .9);
-                    tooltipDiv.html(d.properties.NAME)
-                        .style("left", (d3.event.pageX) + "px")
-                        .style("top", (d3.event.pageY - 28) + "px");
-                })
-                .on("mouseout", function(d) {
-                    tooltipDiv.transition()
-                        .duration(500)
-                        .style("opacity", 0);
-                });;
+                //Bind data and create one path per GeoJSON feature
+                svg.selectAll("path")
+                    .data(g_data.features)
+                    .enter()
+                    .append("path")
+                    .attr("d", path)
+                    .style("fill", function(d){
+                        return d.properties['color'];
+                    })
+                    .on("mouseover", function(d) {
+                        console.log(d);
+                        tooltipDiv.transition()
+                            .duration(200)
+                            .style("opacity", .9);
+                        tooltipDiv.html(d.properties.NAME)
+                            .style("left", (d3.event.pageX) + "px")
+                            .style("top", (d3.event.pageY - 28) + "px");
+                    })
+                    .on("mouseout", function(d) {
+                        tooltipDiv.transition()
+                            .duration(500)
+                            .style("opacity", 0);
+                    });;
 
-
-
+            });
         });
+
 
         function recolorTracts() {
             console.log("inside recolor track");
 
-            g.selectAll("path")
+            svg.selectAll("path")
                 .style("fill", function(d){
                     return color(d['color']);
                 })
         }
 
         var detectChangeInSlider = function(s) {
-            g_tracts.forEach(function(d) {
+            g_data.features.forEach(function(d) {
                 d['color'] = d.properties['Q' + s.value().toString()];
             });
 
