@@ -1,10 +1,11 @@
 from flask import Flask, render_template
-
 app = Flask(__name__)
+
 
 @app.route("/")
 def atlanta():
     return render_template("atlanta.html")
+
 
 @app.route("/fulton")
 def fulton():

@@ -92,7 +92,6 @@
             d3.json("../static/Zillow/ca.json", function (error, data) {
 
                 if (error) throw error;
-                console.lo
 
                 // prefilter augusta
                 var atlanta = [];
@@ -137,7 +136,7 @@
                     .append("path")
                     .attr("d", path)
                     .style("fill", function(d){
-                        return +d.properties['color'];
+                        return color(d.properties['color']);
                     })
                     .on("mouseover", function(d) {
                         console.log(d);
